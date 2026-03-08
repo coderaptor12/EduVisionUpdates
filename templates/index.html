@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>EduVision AI Lab | Multi-Media Learning</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --bg: #080808; --card: rgba(255, 255, 255, 0.02); --text: #d1d5db; --border: rgba(255,255,255,0.05); }
+        .light-mode { --bg: #f9fafb; --card: #ffffff; --text: #111827; --border: #e2e8f0; }
+        body { background-color: var(--bg); color: var(--text); transition: 0.3s; font-family: 'Inter', sans-serif; }
+        .glass { background: var(--card); backdrop-filter: blur(12px); border: 1px solid var(--border); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .nav-btn-active { background: rgba(16, 185, 129, 0.1); color: #10b981; border-color: rgba(16, 185, 129, 0.2); }
+        
+        .loader { border: 3px solid rgba(16, 185, 129, 0.1); border-top: 3px solid #10b981; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .study-accent { border-left: 8px solid #10b981 !important; }
+        .summary-accent { border-left: 8px solid #ef4444 !important; }
+        .hidden { display: none; }
+        
+        /* Responsive Video wrapper for YouTube Iframes */
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 30px; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-[#080808]/80 backdrop-blur-md z-[100] hidden flex-col items-center justify-center">
+        <div class="loader mb-4"></div>
+        <h2 id="loading-title" class="text-emerald-500 font-black italic uppercase tracking-widest text-sm animate-pulse">Synthesizing Multimedia Session...</h2>
+        <p id="loading-sub" class="text-zinc-500 text-[10px] uppercase font-bold mt-2">Generating AI Video, Audio, and YouTube References</p>
+    </div>
+
+    <!-- Sidebar -->
+    <aside class="w-72 border-r border-white/5 bg-black/40 p-6 flex flex-col shrink-0">
+        <div class="mb-8">
+            <span class="text-emerald-500 font-black italic text-2xl tracking-tighter uppercase">EduVision</span>
+        </div>
+
+        <nav class="space-y-2 mb-8">
+            <button onclick="showPage('home')" id="nav-home" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest border border-transparent transition-all hover:bg-white/5 nav-btn-active">
+                <i class="fa-solid fa-house"></i> Learning Lab
+            </button>
+            <button onclick="showPage('subscription')" id="nav-subscription" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest border border-transparent transition-all hover:bg-white/5">
+                <i class="fa-solid fa-crown text-amber-500"></i> Subscription
+            </button>
+            <button onclick="showPage('about')" id="nav-about" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[11px] font-bold uppercase tracking-widest border border-transparent transition-all hover:bg-white/5">
+                <i class="fa-solid fa-circle-info"></i> About & Support
+            </button>
+
+            <!-- YouTube Connection Status -->
+            <div class="pt-4">
+                {% if has_youtube %}
+                <div class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border border-emerald-500/20 bg-emerald-500/5 text-emerald-500">
+                    <i class="fa-brands fa-youtube text-lg"></i> YouTube Connected
+                </div>
+                {% else %}
+                <a href="/auth/google" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest border border-white/5 bg-white/5 text-zinc-400 hover:text-white hover:bg-red-600/20 transition-all">
+                    <i class="fa-brands fa-youtube text-lg"></i> Connect YouTube
+                </a>
+                {% endif %}
+            </div>
+        </nav>
+        
+        <div class="text-[9px] font-bold text-zinc-500 uppercase tracking-widest mb-4 ml-2">Recent Explorations</div>
+        <div id="history-list" class="flex-1 overflow-y-auto scrollbar-hide space-y-2 mb-6"></div>
+        
+        <!-- Video Quota UI -->
+        <div class="mt-4 p-4 glass rounded-2xl border-emerald-500/10">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-[9px] uppercase font-black text-zinc-500">Daily Video Quota</span>
+                <span id="quota-text" class="text-[9px] font-black text-emerald-500">{{ current_user.video_count }}/5</span>
+            </div>
+            <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden">
+                <div id="quota-bar" class="bg-emerald-500 h-full transition-all duration-500" style="width: {{ (current_user.video_count / 5) * 100 }}%;"></div>
+            </div>
+        </div>
+
+        <!-- User Profile Section -->
+        <div class="mt-auto pt-6 border-t border-white/5 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 font-black text-xs">
+                    {{ username[0].upper() if username else 'U' }}
+                </div>
+                <span class="text-[10px] font-black uppercase tracking-widest text-emerald-500 truncate w-32">{{ username }}</span>
+            </div>
+            <a href="{{ url_for('logout_user_session') }}" class="text-gray-600 hover:text-red-500 transition-colors"><i class="fa-solid fa-power-off"></i></a>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col relative overflow-hidden">
+        
+        <header class="h-16 flex items-center justify-between px-8 border-b border-white/5 glass shrink-0">
+            <div class="flex items-center gap-4">
+                <span id="save-status" class="text-[9px] font-black uppercase text-zinc-600 tracking-widest">System Ready</span>
+            </div>
+            <button onclick="document.body.classList.toggle('light-mode')" class="text-emerald-500 opacity-40 hover:opacity-100 transition text-lg">
+                <i class="fa-solid fa-circle-half-stroke"></i>
+            </button>
+        </header>
+
+        <!-- PAGE 1: HOME (LEARNING LAB) -->
+        <section id="page-home" class="flex-1 flex flex-col h-full overflow-hidden">
+            <div id="chat-window" class="flex-1 overflow-y-auto p-8 scrollbar-hide">
+                <div id="results-container" class="max-w-6xl mx-auto space-y-8 pb-20">
+                    <div id="welcome-state" class="text-center mt-32 opacity-10">
+                        <i class="fa-solid fa-flask-vial text-7xl mb-4 text-emerald-500"></i>
+                        <h2 class="text-3xl font-black italic text-white uppercase tracking-tighter">AI Learning Lab</h2>
+                        <p class="text-xs font-bold uppercase tracking-[4px]">Enter a topic below to begin synthesis</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Input Bar -->
+            <div class="p-8 shrink-0 bg-gradient-to-t from-black to-transparent">
+                <div class="max-w-5xl mx-auto glass rounded-[35px] p-4 flex gap-3 items-center shadow-2xl border-emerald-500/10">
+                    <select id="level" class="bg-emerald-500/10 text-emerald-500 text-[9px] font-black p-3 rounded-2xl outline-none border border-emerald-500/20 uppercase cursor-pointer">
+                        <option value="Std 1-5">🧸 Kids (1-5)</option>
+                        <option value="Std 6-10">📖 School (6-10)</option>
+                        <option value="College">🎓 College</option>
+                    </select>
+                    <select id="mode" class="bg-white/5 text-[9px] font-black p-3 rounded-2xl outline-none border border-white/5 uppercase cursor-pointer" onchange="updateUIForMode()">
+                        <option value="text">📖 Study</option>
+                        <option value="video">🎬 Cinema</option>
+                        <option value="summary">🎥 Summarizer</option>
+                    </select>
+                    <textarea id="topic" rows="1" class="bg-transparent flex-1 outline-none text-lg text-white placeholder-zinc-800 font-medium" placeholder="Enter topic to learn..."></textarea>
+                    <button id="generate-btn" onclick="generate()" class="bg-emerald-600 text-white h-12 w-12 rounded-full flex items-center justify-center hover:bg-emerald-500 transition active:scale-90 shadow-xl shadow-emerald-600/20">
+                        <i class="fa-solid fa-bolt"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 2: SUBSCRIPTION -->
+        <section id="page-subscription" class="flex-1 overflow-y-auto p-12 scrollbar-hide hidden">
+            <div class="max-w-5xl mx-auto">
+                <div class="text-center mb-16">
+                    <h2 class="text-5xl font-black text-white italic uppercase tracking-tighter mb-4">Upgrade Your Mind</h2>
+                    <p class="text-zinc-500 font-bold uppercase tracking-widest text-xs">Choose the plan that fits your learning speed</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Starter Plan -->
+                    <div class="glass p-10 rounded-[45px] border-white/5 relative flex flex-col">
+                        <div class="text-[10px] font-black uppercase text-emerald-500 mb-6 tracking-widest">Basic Access</div>
+                        <h3 class="text-4xl font-black text-white mb-2 italic">Starter</h3>
+                        <div class="text-3xl font-black text-zinc-400 mb-8">₹149<span class="text-sm font-normal">/mo</span></div>
+                        <ul class="space-y-4 mb-10 flex-1">
+                            <li class="flex items-center gap-3 text-sm font-bold text-zinc-300"><i class="fa-solid fa-circle-check text-emerald-500"></i> Standard AI Summaries</li>
+                            <li class="flex items-center gap-3 text-sm font-bold text-zinc-300"><i class="fa-solid fa-circle-check text-emerald-500"></i> AI Transcription</li>
+                            <li class="flex items-center gap-3 text-sm font-bold text-zinc-300"><i class="fa-solid fa-circle-check text-emerald-500"></i> 5 Multimedia Sessions Daily</li>
+                        </ul>
+                        <button onclick="window.location.href='/checkout?amount=149'" class="w-full bg-white/5 border border-white/10 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-500 hover:text-black transition mt-auto">Get Starter Access</button>
+                    </div>
+
+                    <!-- Pro Plan -->
+                    <div class="glass p-10 rounded-[45px] border-emerald-500/20 relative flex flex-col bg-emerald-500/5 shadow-2xl shadow-emerald-500/10">
+                        <div class="absolute -top-4 right-10 bg-emerald-500 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Most Popular</div>
+                        <div class="text-[10px] font-black uppercase text-emerald-500 mb-6 tracking-widest">Full Multimedia</div>
+                        <h3 class="text-4xl font-black text-white mb-2 italic">Pro Lab</h3>
+                        <div class="text-3xl font-black text-white mb-8">₹299<span class="text-sm font-normal text-zinc-400">/mo</span></div>
+                        <ul class="space-y-4 mb-10 flex-1">
+                            <li class="flex items-center gap-3 text-sm font-bold text-zinc-300"><i class="fa-solid fa-circle-check text-emerald-500"></i> Professional Grounded Knowledge</li>
+                            <li class="flex items-center gap-3 text-sm font-bold text-zinc-300"><i class="fa-solid fa-circle-check text-emerald-500"></i> AI Video Motion (Cinema Mode)</li>
+                            <li class="flex items-center gap-3 text-sm font-bold text-zinc-300"><i class="fa-solid fa-circle-check text-emerald-500"></i> High-Resolution Concept Images</li>
+                        </ul>
+                        <button onclick="window.location.href='/checkout?amount=299'" class="w-full bg-emerald-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-500 transition mt-auto shadow-lg shadow-emerald-600/20">Get Pro Access</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PAGE 3: ABOUT -->
+        <section id="page-about" class="flex-1 overflow-y-auto p-12 scrollbar-hide hidden">
+            <div class="max-w-4xl mx-auto space-y-12">
+                <div class="glass p-10 rounded-[45px]">
+                    <h3 class="text-3xl font-black text-white uppercase italic tracking-tighter mb-6">About EduVision AI</h3>
+                    <p class="text-zinc-400 font-bold text-sm leading-relaxed mb-6">
+                        EduVision is a next-generation AI Learning Lab designed to transform educational content into immersive multi-media sessions. 
+                    </p>
+                    <div class="flex gap-8">
+                        <div>
+                            <div class="text-[9px] font-black uppercase text-emerald-500 mb-1">Developer</div>
+                            <div class="text-white font-bold text-sm">EduVision Team</div>
+                        </div>
+                        <div>
+                            <div class="text-[9px] font-black uppercase text-emerald-500 mb-1">Contact</div>
+                            <div class="text-white font-bold text-sm">support@eduvision.ai</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+<script>
+    let currentLessonId = null;
+    let autoSaveTimer = null;
+    const hasYoutube = {{ has_youtube | tojson }};
+
+    window.onload = loadHistory;
+
+    function showPage(pageId) {
+        document.querySelectorAll('main > section').forEach(sec => sec.classList.add('hidden'));
+        document.getElementById(`page-${pageId}`).classList.remove('hidden');
+        document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('nav-btn-active'));
+        document.getElementById(`nav-${pageId}`).classList.add('nav-btn-active');
+    }
+
+    function updateUIForMode() {
+        const mode = document.getElementById('mode').value;
+        const topicInput = document.getElementById('topic');
+        topicInput.placeholder = mode === 'summary' ? "Paste YouTube Video Link here..." : "Enter topic to learn...";
+    }
+
+    async function loadHistory() {
+        try {
+            const res = await fetch('/get_history');
+            const history = await res.json();
+            const list = document.getElementById('history-list');
+            list.innerHTML = history.map(item => `
+                <div class="group flex items-center p-3 glass rounded-xl border border-white/5 hover:border-emerald-500/20 transition-all cursor-pointer mb-2" onclick="renderResult(${JSON.stringify(item).replace(/'/g, "&apos;")})">
+                    <div class="flex-1 truncate text-[10px] font-bold uppercase text-zinc-500 group-hover:text-white">
+                        <i class="fa-solid fa-clock-rotate-left mr-2 opacity-30"></i> ${item.topic}
+                    </div>
+                    <button onclick="deleteLesson(${item.id}, event)" class="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-500 px-2 transition-all">
+                        <i class="fa-solid fa-trash-can text-[10px]"></i>
+                    </button>
+                </div>
+            `).join('');
+        } catch (e) {}
+    }
+
+    async function deleteLesson(id, event) {
+        event.stopPropagation();
+        if(!confirm("Erase this lab session?")) return;
+        const res = await fetch(`/delete_lesson/${id}`, { method: 'POST' });
+        if(res.ok) loadHistory();
+    }
+
+    async function generate() {
+        const topic = document.getElementById('topic').value.trim();
+        if(!topic) return;
+        
+        document.getElementById('loading-overlay').classList.replace('hidden', 'flex');
+        const fd = new FormData();
+        fd.append("topic", topic);
+        fd.append("level", document.getElementById('level').value);
+        fd.append("mode", document.getElementById('mode').value);
+
+        try {
+            const res = await fetch('/explain', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (data.status === "error") { alert(data.message); return; }
+            renderResult(data);
+            loadHistory();
+            updateQuotaUI(data.video_count, data.quota);
+            document.getElementById('topic').value = "";
+        } finally {
+            document.getElementById('loading-overlay').classList.replace('flex', 'hidden');
+        }
+    }
+
+    function renderResult(data) {
+        currentLessonId = data.id;
+        const container = document.getElementById('results-container');
+        container.innerHTML = `
+            <div class="animate-in fade-in slide-in-from-bottom-4 space-y-12">
+                <div class="flex justify-between items-end border-b border-white/5 pb-8">
+                    <div>
+                        <span class="text-[10px] font-black text-emerald-500 uppercase tracking-[4px]">Lab Session Topic</span>
+                        <h2 class="text-7xl font-black text-white italic tracking-tighter uppercase leading-none">${data.topic}</h2>
+                    </div>
+                    <a href="/download_pdf/${data.id}" class="bg-emerald-600 text-white px-8 py-4 rounded-3xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 transition shadow-xl">
+                        <i class="fa-solid fa-file-pdf mr-2"></i> Download Lab Report
+                    </a>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+                    <div class="lg:col-span-2 space-y-10">
+                        <!-- AI Media Area -->
+                        ${data.video && data.video !== "unavailable" ? `
+                        <div class="glass rounded-[50px] overflow-hidden border border-emerald-500/10 shadow-2xl">
+                            <div class="p-4 bg-emerald-500/10 border-b border-white/5 flex justify-between">
+                                <span class="text-[9px] font-black uppercase text-emerald-500 tracking-widest">Your AI Cinematic Generation</span>
+                                <i class="fa-solid fa-wand-magic-sparkles text-emerald-500 text-xs"></i>
+                            </div>
+                            <video src="${data.video}" controls autoplay loop muted class="w-full aspect-video bg-black"></video>
+                        </div>` : `
+                        <div class="glass rounded-[50px] overflow-hidden h-96 border border-white/5">
+                            <img src="${data.image}" class="w-full h-full object-cover" onerror="this.src='https://api.dicebear.com/7.x/identicon/svg?seed=fallback'">
+                        </div>`}
+
+                        <!-- Explanation -->
+                        <div class="glass p-12 rounded-[50px] text-xl leading-relaxed text-zinc-300 study-accent border-emerald-500/5 shadow-2xl">
+                            ${data.explanation.replace(/\n/g, '<br>')}
+                        </div>
+
+                        <!-- Researcher Observations (Auto-save) -->
+                        <div class="glass p-10 rounded-[50px] border-emerald-500/20 bg-emerald-500/[0.02] space-y-6">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-[10px] font-black text-emerald-500 uppercase tracking-[5px]">Researcher Observations</h4>
+                                <div class="flex items-center gap-4">
+                                    <span id="auto-save-label" class="text-[8px] font-bold text-zinc-600 uppercase tracking-widest">Synchronized</span>
+                                    ${hasYoutube ? `
+                                    <button onclick="postCommentToYouTube(${data.id})" id="yt-sync-btn" class="bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white px-3 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest transition-all">
+                                        <i class="fa-brands fa-youtube mr-1"></i> Sync to YouTube
+                                    </button>
+                                    ` : `
+                                    <a href="/auth/google" class="text-[8px] font-bold text-zinc-500 hover:text-emerald-500 uppercase tracking-widest underline decoration-dotted underline-offset-4">
+                                        Connect YouTube to Comment
+                                    </a>
+                                    `}
+                                </div>
+                            </div>
+                            <textarea id="lab-notes" oninput="handleAutoSave(${data.id})" class="w-full bg-black/40 border border-white/5 rounded-3xl p-8 text-white outline-none focus:border-emerald-500 min-h-[300px] text-lg font-medium leading-relaxed" placeholder="Document your findings and research notes here...">${data.notes || ''}</textarea>
+                        </div>
+                    </div>
+
+                    <div class="space-y-10">
+                        <!-- Grounded Source (YouTube Embed) -->
+                        <div class="space-y-4">
+                            <span class="text-[10px] font-black text-zinc-500 uppercase tracking-[4px] ml-4">Grounded Source Reference</span>
+                            <div class="video-wrapper glass shadow-2xl border border-white/5">
+                                <iframe src="https://www.youtube.com/embed/${data.youtube_id || 'dQw4w9WgXcQ'}" frameborder="0" allowfullscreen></iframe>
+                            </div>
+                        </div>
+
+                        <!-- Audio Interface -->
+                        <div class="glass p-8 rounded-[40px] flex items-center gap-6 border-emerald-500/5">
+                            <div class="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center text-emerald-500"><i class="fa-solid fa-microphone-lines"></i></div>
+                            <audio src="${data.audio}" controls class="flex-1 opacity-60"></audio>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        container.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function postCommentToYouTube(lessonId) {
+        const btn = document.getElementById('yt-sync-btn');
+        const originalText = btn.innerHTML;
+        
+        btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Posting...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/sync_to_youtube/${lessonId}`, { method: 'POST' });
+            const result = await res.json();
+            
+            if (result.status === "success") {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Posted to YouTube';
+                btn.classList.replace('bg-red-600/10', 'bg-emerald-600');
+                btn.classList.replace('text-red-500', 'text-white');
+            } else {
+                alert(result.message);
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        } catch (e) {
+            alert("Error connecting to YouTube API.");
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+
+    function handleAutoSave(id) {
+        const label = document.getElementById('auto-save-label');
+        const systemStatus = document.getElementById('save-status');
+        
+        label.innerText = "Syncing...";
+        label.className = "text-[8px] font-bold text-amber-500 uppercase tracking-widest";
+        systemStatus.innerText = "Data Synchronizing...";
+
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(async () => {
+            const notes = document.getElementById('lab-notes').value;
+            try {
+                const res = await fetch(`/save_notes/${id}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ notes })
+                });
+                if(res.ok) {
+                    label.innerText = "Synchronized";
+                    label.className = "text-[8px] font-bold text-emerald-500 uppercase tracking-widest";
+                    systemStatus.innerText = "Lab Records Updated";
+                }
+            } catch (e) {
+                label.innerText = "Sync Failed";
+                label.className = "text-[8px] font-bold text-red-500 uppercase tracking-widest";
+            }
+        }, 1500);
+    }
+
+    function updateQuotaUI(count, max) {
+        document.getElementById('quota-text').innerText = `${count}/${max}`;
+        document.getElementById('quota-bar').style.width = `${(count / max) * 100}%`;
+    }
+</script>
+</body>
+</html>
