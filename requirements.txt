@@ -1,0 +1,9 @@
+flask
+flask-sqlalchemy
+flask-login
+google-generativeai
+xhtml2pdf
+python-dotenv
+ollama
+werkzeug
+requests

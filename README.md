@@ -1,2 +1,2 @@
-# EduVisionUpdates
+# EduVision
 working on project
