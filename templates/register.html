@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Join EduVision</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#0f172a] h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-slate-800/50 backdrop-blur-md p-8 rounded-3xl border border-white/10 shadow-2xl">
+        <h1 class="text-2xl font-black text-white text-center mb-8 uppercase tracking-tight">Create Account</h1>
+        
+        <form action="{{ url_for('register_view') }}" method="POST" class="space-y-4">
+            <input type="text" name="username" placeholder="Username" required 
+                class="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-emerald-500 transition-all">
+            
+            <input type="password" name="password" placeholder="Password" required 
+                class="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-emerald-500 transition-all">
+            
+            <div class="pt-2">
+                <label class="text-[10px] text-emerald-500 font-bold uppercase ml-2 tracking-widest">Secret Word (Recovery Answer)</label>
+                <input type="text" name="security_answer" placeholder="e.g. MyFavoriteToy" required 
+                    class="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-emerald-500 transition-all">
+            </div>
+
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all uppercase text-xs tracking-widest">
+                Register Now
+            </button>
+        </form>
+
+        <p class="text-center mt-6 text-sm text-gray-400">
+            Already a member? <a href="{{ url_for('login_view') }}" class="text-emerald-500 font-bold hover:text-emerald-400">Login</a>
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ topic }}</title>
+</head>
+<body>
+
+<h1>Topic: {{ topic }}</h1>
+<h3>Level: {{ level }}</h3>
+
+<h2>Explanation</h2>
+<pre style="white-space: pre-wrap;">{{ explanation }}</pre>
+
+<h2>Image</h2>
+{% if image %}
+  <img src="{{ image }}" width="500">
+{% else %}
+  <p>No image available</p>
+{% endif %}
+
+<h2>Audio</h2>
+{% if audio %}
+  <audio controls>
+    <source src="{{ audio }}" type="audio/mpeg">
+  </audio>
+{% else %}
+  <p>No audio available</p>
+{% endif %}
+
+<br><br>
+<a href="/">Back</a>
+
+</body>
+</html>

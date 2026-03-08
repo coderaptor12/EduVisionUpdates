@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Scenes</title>
+</head>
+<body>
+    <h2>Scenes generated from '{{ topic }}'</h2>
+
+    {% for scene in scenes %}
+        <div>
+            <p>{{ scene }}</p>
+            <form action="/generate_image" method="post">
+                <input type="hidden" name="scene" value="{{ scene }}">
+                <button type="submit">Generate Image</button>
+            </form>
+        </div>
+    {% endfor %}
+</body>
+</html>
