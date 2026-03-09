@@ -4,6 +4,7 @@ import requests
 import io
 import re
 import base64
+from flask_sqlalchemy import SQLAlchemy
 import json
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session, send_file, flash
 from flask_sqlalchemy import SQLAlchemy
@@ -22,7 +23,9 @@ from google.oauth2.credentials import Credentials
 
 # Load Environment Variables
 load_dotenv()
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1' # For local testing only
+# This is CRITICAL for local testing of Google OAuth
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'eduvision_secure_7788')
@@ -164,6 +167,9 @@ def authorize_google():
     flow.redirect_uri = url_for('oauth2callback', _external=True)
     authorization_url, state = flow.authorization_url(access_type='offline', include_granted_scopes='true')
     session['state'] = state
+     # THE FIX: Store the state AND the code_verifier in the session
+    session['state'] = state
+    session['code_verifier'] = flow.code_verifier
     return redirect(authorization_url)
 
 @app.route('/oauth2callback')
@@ -174,6 +180,9 @@ def oauth2callback():
         {"web": {"client_id": GOOGLE_CLIENT_ID, "client_secret": GOOGLE_CLIENT_SECRET, "auth_uri": "https://accounts.google.com/o/oauth2/auth", "token_uri": "https://oauth2.googleapis.com/token"}},
         scopes=YT_SCOPES, state=state
     )
+     # THE FIX: Restore the code_verifier from the session
+    flow.code_verifier = session.get('code_verifier')
+    
     flow.redirect_uri = url_for('oauth2callback', _external=True)
     flow.fetch_token(authorization_response=request.url)
     credentials = flow.credentials
