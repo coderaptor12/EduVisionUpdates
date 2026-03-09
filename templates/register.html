@@ -2,34 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Join EduVision</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join EduVision | AI Lab</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body { 
+            background-color: #080808; 
+            font-family: 'Inter', sans-serif;
+            background-image: radial-gradient(circle at 0% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+        }
+        .glass { 
+            background: rgba(255, 255, 255, 0.02); 
+            backdrop-filter: blur(12px); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+        }
+    </style>
 </head>
-<body class="bg-[#0f172a] h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-md bg-slate-800/50 backdrop-blur-md p-8 rounded-3xl border border-white/10 shadow-2xl">
-        <h1 class="text-2xl font-black text-white text-center mb-8 uppercase tracking-tight">Create Account</h1>
-        
-        <form action="{{ url_for('register_view') }}" method="POST" class="space-y-4">
-            <input type="text" name="username" placeholder="Username" required 
-                class="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-emerald-500 transition-all">
-            
-            <input type="password" name="password" placeholder="Password" required 
-                class="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-emerald-500 transition-all">
-            
-            <div class="pt-2">
-                <label class="text-[10px] text-emerald-500 font-bold uppercase ml-2 tracking-widest">Secret Word (Recovery Answer)</label>
-                <input type="text" name="security_answer" placeholder="e.g. MyFavoriteToy" required 
-                    class="w-full bg-slate-900 border border-white/10 rounded-xl p-4 text-white outline-none focus:border-emerald-500 transition-all">
+<body class="h-screen flex items-center justify-center p-4">
+
+    <div class="w-full max-w-md space-y-8">
+        <!-- Logo/Header -->
+        <div class="text-center">
+            <h1 class="text-emerald-500 font-black italic text-4xl uppercase tracking-tighter mb-2">EduVision</h1>
+            <p class="text-zinc-500 text-[10px] font-bold uppercase tracking-[4px]">Synthesis Learning Lab</p>
+        </div>
+
+        <div class="glass p-10 rounded-[40px] shadow-2xl border-emerald-500/10">
+            <h2 class="text-2xl font-black text-white italic uppercase tracking-tight mb-8">Create Account</h2>
+
+            <!-- Flash Messages -->
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-2xl mb-6 text-[10px] font-bold uppercase tracking-widest flex items-center gap-3">
+                    <i class="fa-solid fa-circle-exclamation"></i> {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <form action="{{ url_for('register_view') }}" method="POST" class="space-y-5">
+                <!-- Username Input -->
+                <div class="space-y-2">
+                    <label class="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-4">Username</label>
+                    <input type="text" name="username" required 
+                        class="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white outline-none focus:border-emerald-500 transition-all placeholder:text-zinc-800" 
+                        placeholder="Choose a username">
+                </div>
+
+                <!-- Password Input -->
+                <div class="space-y-2">
+                    <label class="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-4">Password</label>
+                    <input type="password" name="password" required 
+                        class="w-full bg-black/40 border border-white/5 rounded-2xl p-4 text-white outline-none focus:border-emerald-500 transition-all placeholder:text-zinc-800" 
+                        placeholder="••••••••">
+                </div>
+
+                <!-- Security Word (Matches backend security_answer) -->
+                <div class="space-y-2">
+                    <div class="flex justify-between items-center ml-4 mr-1">
+                        <label class="text-[9px] font-black text-emerald-500 uppercase tracking-widest">Secret Word</label>
+                        <span class="text-[8px] text-zinc-600 font-bold uppercase">Recovery Key</span>
+                    </div>
+                    <input type="text" name="security_answer" required 
+                        class="w-full bg-emerald-500/5 border border-emerald-500/10 rounded-2xl p-4 text-white outline-none focus:border-emerald-500 transition-all placeholder:text-zinc-700" 
+                        placeholder="e.g. MyFirstPetName">
+                    <p class="text-[8px] text-zinc-600 font-medium ml-4 uppercase tracking-tighter">Use this word to recover your account if you forget your password.</p>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-5 rounded-2xl shadow-xl shadow-emerald-600/10 transition-all active:scale-95 uppercase text-[10px] tracking-[3px] mt-4">
+                    Initialize Access
+                </button>
+            </form>
+
+            <div class="mt-8 pt-8 border-t border-white/5 text-center">
+                <p class="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                    Existing Researcher? 
+                    <a href="{{ url_for('login_view') }}" class="text-emerald-500 hover:text-emerald-400 ml-2 transition-colors">Login Here</a>
+                </p>
             </div>
+        </div>
 
-            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all uppercase text-xs tracking-widest">
-                Register Now
-            </button>
-        </form>
-
-        <p class="text-center mt-6 text-sm text-gray-400">
-            Already a member? <a href="{{ url_for('login_view') }}" class="text-emerald-500 font-bold hover:text-emerald-400">Login</a>
+        <!-- Footer Info -->
+        <p class="text-center text-[9px] font-bold text-zinc-700 uppercase tracking-widest">
+            &copy; 2026 EduVision AI Lab &bull; Secure Multi-Media Grounding
         </p>
     </div>
+
 </body>
 </html>
